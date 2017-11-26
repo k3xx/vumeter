@@ -16,7 +16,7 @@ import PCF8591 as ADC
 
 
 SINK_NAME = 'alsa_output.usb-Burr-Brown_from_TI_USB_Audio_DAC-00-DAC.analog-stereo'
-METER_RATE = 16 # Hz, default 128
+METER_RATE = 8 # Hz, default 128
 
 def main():
     ADC.setup(0x48) # Set up the GPIO pins used to talk to the DAC
