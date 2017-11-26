@@ -1,5 +1,11 @@
 This program reads peak audio samples from a PulseAudio sink and sends
 them to a digital-to-analog converter (which is intended to be
 connected to an analog VU meter). It runs on a Raspberry Pi but will
-probably work on other platforms by adjusting dac.py.
+probably work on other platforms by adjusting the DAC class.
+
+Originally from https://bitbucket.org/mjs0/raspberry_pi-vu_meter/
+Extented to the PCF8591 DAC.
+
+Creator: Menno Finlay-Smits
+Editor: Soenke Neumann
 

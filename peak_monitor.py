@@ -64,7 +64,7 @@ class PeakMonitor(object):
             # Tell PA to call stream_read_cb with peak samples.
             print 'setting up peak recording using', sink_info.monitor_source_name
             samplespec = pa_sample_spec()
-            samplespec.channels = 1
+            samplespec.channels = 2
             samplespec.format = PA_SAMPLE_U8
             samplespec.rate = self.rate
 
