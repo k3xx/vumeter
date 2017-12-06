@@ -17,8 +17,12 @@ class PeakMonitor(object):
         # Wrap callback methods in appropriate ctypefunc instances so
         # that the Pulseaudio C API can call them
         self._context_notify_cb = pa_context_notify_cb_t(self.context_notify_cb)
+        self._server_info_cb = pa_server_info_cb_t(self.server_info_cb)
         self._sink_info_cb = pa_sink_info_cb_t(self.sink_info_cb)
         self._stream_read_cb = pa_stream_request_cb_t(self.stream_read_cb)
+        self._update_cb = pa_context_subscribe_cb_t(self.update_cb)
+        self._success_cb = pa_context_success_cb_t(self.success_cb)
+        
 
         # stream_read_cb() puts peak samples into this Queue instance
         self._samples = Queue()
@@ -36,15 +40,42 @@ class PeakMonitor(object):
     def __iter__(self):
         while True:
             yield self._samples.get()
+            self._samples.task_done()
+
+    
+    def request_update(self, context):
+        #Requests a sink info update (sink_info_cb is called)
+        
+        pa_operation_unref(pa_context_get_sink_info_by_name(
+            context, self.sink_name, self._sink_info_cb, None))
+
+    def success_cb(self, context, success, userdata):
+        pass
+    
+    def update_cb(self, context, t, idx, userdata):
+        #A sink property changed, calls request_update
+        self.request_update(context)
+    
+    def server_info_cb(self, context, server_info_p, userdata):
+        #Retrieves the default sink and calls request_update
+        server_info = server_info_p.contents
+        self.sink_name = server_info.default_sink_name
+        self.request_update(context)
 
     def context_notify_cb(self, context, _):
         state = pa_context_get_state(context)
 
         if state == PA_CONTEXT_READY:
+            print "Pulseaudio connection ready..."
             # Connected to Pulseaudio. Now request that sink_info_cb
             # be called with information about the available sinks.
             o = pa_context_get_sink_info_list(context, self._sink_info_cb, None)
             pa_operation_unref(o)
+
+            # This starts a pulse instant, which might be unwanted (and leads to bad performance for my configuration with mopidy)
+            #pa_operation_unref(pa_context_get_server_info(context, self._server_info_cb, None))
+            #pa_context_set_subscribe_callback(context, self._update_cb, None)
+            #pa_operation_unref(pa_context_subscribe(context, PA_SUBSCRIPTION_EVENT_CHANGE | PA_SUBSCRIPTION_MASK_SINK, self._success_cb, None))
 
         elif state == PA_CONTEXT_FAILED :
             print "Connection failed"
@@ -87,4 +118,8 @@ class PeakMonitor(object):
             # it doesn't make sense to return signed peaks.
             self._samples.put(data[i] - 128)
         pa_stream_drop(stream)
+
+
+    def flushqueue(self):
+        self._samples.queue.clear()
 
